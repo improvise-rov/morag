@@ -1,10 +1,12 @@
 <h1 align=center> 
-
 Morag 
 </h1>
-<p align=center><i>Source Code to impROVise's Profiling Float, Morag</i>
-<br><br><br>
-<img height=50 style="vertical-align:middle" src="docs/improvise.png"></img>
+
+<p align=center>
+    <i>Source Code to impROVise's Profiling Float, Morag</i>
+    <br><br><br>
+    <img height=50 style="vertical-align:middle" src="docs/improvise.png"></img>
+</p>
 
 ---
 

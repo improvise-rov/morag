@@ -19,6 +19,7 @@ ACK: int = 4
 # format specifier
 HEADER_FORMAT: str = '>H' # packet id
 POINT_FORMAT: str = '>ff' # time, depth
+OTHER_DATA_FORMAT: str = ">if" # profile no., temperature
 
 # network
 IP: str = "127.0.0.1"
@@ -65,31 +66,56 @@ class FloatNetworker():
         return bytes(packet)
     
     @staticmethod
-    def random_data(points: int = 64) -> bytes:
+    def random_data(profile: int = 0, points: int = 64) -> bytes:
         data: bytes = bytes()
+
+        # other data
+        temperature = random.randrange(-20, 20)
+        data += struct.pack(OTHER_DATA_FORMAT, profile, temperature)
+
+        # points
         data += struct.pack(">i", points)
         for i in range(points):
             data += struct.pack(POINT_FORMAT, i, random.randrange(-100, 0))
+
+
         return data
 
 
-def start_profile(networker: FloatNetworker, addr: _addr):
-    print("profiled")
-    networker.send(addr, FloatNetworker.build_packet(ACK))
 
-def send_data(networker: FloatNetworker, addr: _addr):
-    print("sending payload")
-    networker.send(addr, FloatNetworker.build_packet(DATA_PAYLOAD, FloatNetworker.random_data()))
+class Profiler():
+    def __init__(self) -> None:
+        self.networker = FloatNetworker()
+        self.keep_open = True
+        self.profiles = 0
+        self.ready_to_transmit = False
 
+    def run(self):
+        print("started!")
+        while self.keep_open:
+            addr, id, data = self.networker.handle_packet()
+
+            if id == START_PROFILE:         self.start_profile(addr)
+            if id == STATION_ASKS_FOR_DATA: self.send_data(addr)
+
+
+    def start_profile(self, addr: _addr):
+        self.profiles += 1
+        print(f"starting profile #{self.profiles}..")
+        self.ready_to_transmit = False
+        self.networker.send(addr, FloatNetworker.build_packet(ACK))
+        self.ready_to_transmit = True
+        print("profile complete")
+
+    def send_data(self, addr: _addr):
+        if self.ready_to_transmit:
+            print("sending payload..")
+            self.networker.send(addr, FloatNetworker.build_packet(DATA_PAYLOAD, FloatNetworker.random_data(profile=self.profiles)))
+            print("data transmitted")
 
 if __name__ == "__main__":
-    networker = FloatNetworker()
-    keep_open = True
+    profiler = Profiler()
+    profiler.run()
 
-    print("started!")
-    while keep_open:
-        addr, id, data = networker.handle_packet()
-
-        if id == START_PROFILE:         start_profile(networker, addr)
-        if id == STATION_ASKS_FOR_DATA: send_data(networker, addr)
+    
     
