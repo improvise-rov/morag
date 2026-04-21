@@ -9,6 +9,15 @@ import socket
 import struct
 import random
 
+# ascii art
+IMPROVISE_ASCII_ART_STRING: str = """  _                 ____   _____     ___          
+ (_)_ __ ___  _ __ |  _ \\ / _ \\ \\   / (_)___  ___ 
+ | | '_ ` _ \\| '_ \\| |_) | | | \\ \\ / /| / __|/ _ \\
+ | | | | | | | |_) |  _ <| |_| |\\ V / | \\__ \\  __/
+ |_|_| |_| |_| .__/|_| \\_\\\\___/  \\_/  |_|___/\\___|
+             |_|                                  """
+
+
 # packet identifiers
 NONE: int = 0
 START_PROFILE: int = 1
@@ -114,6 +123,8 @@ class Profiler():
             print("data transmitted")
 
 if __name__ == "__main__":
+    print(IMPROVISE_ASCII_ART_STRING)
+    print()
     profiler = Profiler()
     profiler.run()
 
