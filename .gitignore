@@ -1,3 +1,6 @@
+# dont include esp32 firmware.
+firmware/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
