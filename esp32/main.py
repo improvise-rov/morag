@@ -7,8 +7,10 @@ key = "password"
 
 # setup network
 ap = network.WLAN(network.WLAN.IF_AP)
-ap.config(essid=ssid, security=security, key=key)
+ap.config(ssid=ssid, security=security, key=key)
 ap.active(True)
 
 while True:
-    pass
+    for sta in ap.status('stations'):
+        mac = ':'.join('%02x' % b for b in sta[0]) # format the bytes into a mac address
+        print('Connected MAC:', mac)
