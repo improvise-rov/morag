@@ -8,7 +8,7 @@ class Address():
         self.ip = ip
         self.port = port
 
-    def tuple(self) -> tuple[str, int]:
+    def tupl(self) -> tuple[str, int]:
         return (self.ip, self.port)
     
     @staticmethod
@@ -34,7 +34,7 @@ class FloatNetworker():
         self.server.settimeout(1)
     
     def send(self, addr: Address, packet: bytes):
-        self.server.sendto(packet, addr.tuple())
+        self.server.sendto(packet, addr.tupl())
 
     def handle_packet(self) -> tuple[Address, int, bytes]:
         try:
