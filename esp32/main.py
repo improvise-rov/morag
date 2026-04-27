@@ -1,7 +1,9 @@
 import network
+import math
 
 from src import consts
 from src import ms5837
+from src import servo
 from src import udp
 
 class Profiler():
@@ -14,7 +16,13 @@ class Profiler():
         # sensor
         #sensor = ms5837.Sensor()
 
+        # servo
+        self.buoyancy = servo.Servo(consts.BUOYANCY_SERVO_PIN)
+        
+        # networker
         self.networker = udp.FloatNetworker()
+
+        # stuff
         self.keep_open = True
         self.profiles = 0
         self.ready_to_transmit = False
