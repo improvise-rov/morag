@@ -2,28 +2,35 @@ from machine import Pin, PWM
 from src import consts
 
 class Servo():
-    def __init__(self, pin: int) -> None:
-        self.pwm = PWM(Pin(pin), consts.PWM_FREQUENCY)
-        self._ang = 0
 
-    def set_angle(self, angle: int):
-        if angle >= 0 and angle <= 180:
-            self._ang = angle
-            self.pwm.duty_u16(Servo.ang_to_duty_ns(self._ang)) 
+    def __init__(self, pin: int, feedback_pin: int) -> None:
+        self.pwm = PWM(Pin(pin), consts.PWM_FREQUENCY)
+        self.feedback = PWM(Pin(feedback_pin), consts.PWM_FREQUENCY)
+        self._speed = 0
+
+    def set_speed(self, speed: float):
+        if speed >= -1.0 and speed <= 1.0:
+            self._speed = speed
+            self.pwm.duty_u16(Servo.rotation_to_duty(self._speed)) 
     
-    def get_angle(self) -> int:
-        return self._ang
+    def get_speed(self) -> float:
+        return self._speed
+    
+    def get_feedback(self) -> float:
+        if consts.FEEDBACK:
+            return 0 # do.. something... here
+        return -1.0
 
     @staticmethod
-    def ang_to_duty_ns(angle: int):
-        assert angle >= 0 and angle <= 180
+    def rotation_to_duty(speed: float):
+        assert speed >= -1.0 and speed <= 1.0
 
         pulse = _map(
-            0, 90, 180,
-            angle,
-            consts.SERVO_MINIMUM_DUTY, 
-            consts.SERVO_NEUTRAL_DUTY, 
-            consts.SERVO_MAXIMUM_DUTY
+            -1.0, 0.0, 1.0,
+            speed,
+            consts.SERVO_MINIMUM_US, 
+            consts.SERVO_NEUTRAL_US, 
+            consts.SERVO_MAXIMUM_US
         )
         period = 1_000_000 / consts.PWM_FREQUENCY
 

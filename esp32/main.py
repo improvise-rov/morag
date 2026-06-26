@@ -1,10 +1,12 @@
 import network
 import math
+import time
 
 from src import consts
 from src import ms5837
 from src import servo
 from src import udp
+from src import depth
 
 class Profiler():
     def __init__(self) -> None:
@@ -14,18 +16,24 @@ class Profiler():
         self.ap.active(True)
 
         # sensor
-        #sensor = ms5837.Sensor()
+        self.sensor = ms5837.Sensor()
 
         # servo
-        self.buoyancy = servo.Servo(consts.BUOYANCY_SERVO_PIN)
+        self.servo = servo.Servo(consts.BUOYANCY_SERVO_PIN, consts.FEEDBACK_PIN)
         
         # networker
         self.networker = udp.FloatNetworker()
+
+        # depth controller
+        self.depth_controller = depth.DepthController(self.sensor, self.servo)
 
         # stuff
         self.keep_open = True
         self.profiles = 0
         self.ready_to_transmit = False
+
+        # readings
+        self.last_readings: list[tuple[float, float, float]] = [] # time, depth, temperature
 
     def run(self):
         print("started!")
@@ -40,6 +48,31 @@ class Profiler():
         self.profiles += 1
         print(f"starting profile #{self.profiles}..")
         self.ready_to_transmit = False
+        
+        # clear data from last reading
+        self.last_readings = []
+
+        # descend down about 2.5 meters and hold for 30 seconds
+        self.depth_controller.target = 2.5
+        time.sleep(30)
+        
+
+        # ascend to about 40cm and hold for 30 seconds
+        self.depth_controller.target = 0.4
+        time.sleep(30)
+
+        # descend again
+        self.depth_controller.target = 2.5
+        time.sleep(30)
+
+        # ascend again
+        self.depth_controller.target = 0.4
+        time.sleep(30)
+
+        # surface
+        self.depth_controller.target = 0.0
+
+        # send data
         self.networker.send(addr, udp.FloatNetworker.build_packet(udp.ACK))
         self.ready_to_transmit = True
         print("profile complete")
@@ -47,7 +80,13 @@ class Profiler():
     def send_data(self, addr: udp.Address):
         if self.ready_to_transmit:
             print("sending payload..")
-            self.networker.send(addr, udp.FloatNetworker.build_packet(udp.DATA_PAYLOAD, udp.FloatNetworker.random_data(profile=self.profiles)))
+            self.networker.send(addr, udp.FloatNetworker.build_packet(udp.DATA_PAYLOAD, 
+                                                                      udp.FloatNetworker.gathered_data(
+                                                                          profile=self.profiles,
+                                                                          avg_temperature=self.average_temperature(),
+                                                                          data_points=self.extract_graphable_data()
+                                                                          )
+                                                                    ))
             print("data transmitted")
 
     def get_macs(self) -> list[str]:
@@ -55,6 +94,20 @@ class Profiler():
     
     def get_ip(self) -> str:
         return self.ap.ipconfig('addr4')[0]
+    
+    def average_temperature(self) -> float:
+        reduced = 0
+        n = 0
+        for datum in self.last_readings:
+            reduced += datum[2]
+            n += 1
+        return reduced / n
+    
+    def extract_graphable_data(self) -> list[tuple[float, float]]:
+        data = []
+        for datum in self.last_readings:
+            data.append((datum[0], datum[1]))
+        return data
 
 
 if __name__ == "__main__":

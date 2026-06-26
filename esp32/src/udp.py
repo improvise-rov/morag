@@ -73,9 +73,24 @@ class FloatNetworker():
         data += struct.pack(OTHER_DATA_FORMAT, profile, temperature)
 
         # points
-        data += struct.pack(">i", points)
+        data += struct.pack(">i", points) # pack number of points
         for i in range(points):
             data += struct.pack(POINT_FORMAT, i, random.randrange(-100, 0))
+
+
+        return data
+    
+    @staticmethod
+    def gathered_data(profile: int = 0, avg_temperature: float = 0.0, data_points: list[tuple[float, float]] = []) -> bytes:
+        data: bytes = bytes()
+
+        # other data
+        data += struct.pack(OTHER_DATA_FORMAT, profile, avg_temperature)
+
+        # points
+        data += struct.pack(">i", len(data_points)) # pack number of points
+        for datum in data_points: # time, depth
+            data += struct.pack(POINT_FORMAT, datum[0], datum[1])
 
 
         return data

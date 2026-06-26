@@ -5,7 +5,7 @@ class Sensor():
     """
     float's sensor. comm's over i2c.
     
-    custom 02ba driver based on code from [bluerobotics ms5837 driver.](https://github.com/bluerobotics/ms5837-python). chatgpt was used
+    custom bar03 driver based on code from [bluerobotics ms5837 driver.](https://github.com/bluerobotics/ms5837-python). claude was used
     """
     _ADDR = 0x76
       
@@ -82,29 +82,28 @@ class Sensor():
         self._read_raw_pressure()
         self._read_raw_temperature()
 
-        # apply calibration and compensation
-        OFFi = 0
-        SENSi = 0
-        Ti = 0
+        dT = self._raw_temp - self._calibration[5] * 256
+        SENS = self._calibration[1] * 65536 + (self._calibration[3] * dT) / 128
+        OFF  = self._calibration[2] * 131072 + (self._calibration[4] * dT) / 64
+        self._pressure    = (self._raw_pres * SENS / 2097152 - OFF) / 32768
+        self._temperature = 2000 + dT * self._calibration[6] / 8388608
 
-        dT = self._raw_temp-self._calibration[5]*256
-        SENS = self._calibration[1]*65536+(self._calibration[3]*dT)/128
-        OFF = self._calibration[2]*131072+(self._calibration[4]*dT)/64
-        self._pressure = (self._raw_pres*SENS/(2097152)-OFF)/(32768)
-        
-        self._temperature = 2000+dT*self._calibration[6]/8388608
+        Ti = 0; OFFi = 0; SENSi = 0
 
-        # Second order compensation
-        if (self._temperature/100) < 20: # Low temp
-            Ti = (11*dT*dT)/(34359738368)
-            OFFi = (31*(self._temperature-2000)*(self._temperature-2000))/8
-            SENSi = (63*(self._temperature-2000)*(self._temperature-2000))/32
-        
-        OFF2 = OFF-OFFi
-        SENS2 = SENS-SENSi
-    
-        self._temperature = (self._temperature-Ti)
-        self._pressure = (((self._raw_pres*SENS2)/2097152-OFF2)/32768)/100.0  
+        if (self._temperature / 100) < 20:          # low temp
+            Ti    = (3 * dT * dT) / 8589934592
+            OFFi  = (3 * (self._temperature - 2000) ** 2) / 2
+            SENSi = (5 * (self._temperature - 2000) ** 2) / 8
+        if (self._temperature / 100) < -15:      # very low temp
+            OFFi  += 7 * (self._temperature + 1500) ** 2
+            SENSi += 4 * (self._temperature + 1500) ** 2
+        elif (self._temperature / 100) >= 20:        # high temp
+            Ti    = (2 * dT * dT) / 137438953472
+            OFFi  = (self._temperature - 2000) ** 2 / 16
+            SENSi = 0
+
+        self._temperature = self._temperature - Ti
+        self._pressure    = (((self._raw_pres * (SENS - SENSi)) / 2097152 - (OFF - OFFi)) / 32768) / 100.0
 
     # read/write helpers
     def _w(self, data: int):
